@@ -1,5 +1,6 @@
 import React from 'react';
 import { linkTo } from '@storybook/addon-links';
+// @ts-ignore
 import { Welcome } from '@storybook/react/demo';
 
 export default {
