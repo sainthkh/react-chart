@@ -50,6 +50,7 @@ interface BarPlotProps<T> {
     min?: number;
   };
   barStyle?: AxisStyle;
+  svg?: (svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) => void;
 }
 
 type PropsWithDataKey<T> = BarPlotProps<T> & {
@@ -105,7 +106,7 @@ function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: Ax
 }
 
 export function BarPlot<T>(props: Props<T>) {
-  const { data, width, height, margin: userMargin, color, barStyle, range } = props;
+  const { data, width, height, margin: userMargin, color, barStyle, range, svg: userSvg } = props;
   const initialRange = range || {};
   const id = useUID();
   const uid = `barplot-id-${id}`;
@@ -178,6 +179,10 @@ export function BarPlot<T>(props: Props<T>) {
 
     const bars = svg.selectAll('rect');
     applyStyle(bars, barStyle || {});
+
+    if (userSvg) {
+      userSvg(svg);
+    }
   });
 
   return <div id={uid}></div>;

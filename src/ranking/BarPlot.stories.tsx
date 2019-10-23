@@ -186,3 +186,20 @@ export const axesRange = () => (
     color="green"
   />
 );
+
+export const userSvg = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+    color="cyan"
+    svg={(svg) => {
+      svg.selectAll('.domain-axis text').attr('font-weight', 'bold');
+    }}
+  />
+);
