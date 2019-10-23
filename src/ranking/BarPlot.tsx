@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
 import { Margin } from '../types';
-import { toKebabCase, max, ceil10, digits, sig } from '../util';
+import { toKebabCase, rangeMax, rangeMin } from '../util';
 
 type AxisType = 'domain' | 'range';
 type DataKeyDomainFunc<T> = (data: T) => string;
@@ -45,6 +45,10 @@ interface BarPlotProps<T> {
   height: number;
   margin?: Margin;
   color?: string;
+  range?: {
+    max?: number;
+    min?: number;
+  };
   barStyle?: AxisStyle;
 }
 
@@ -100,14 +104,9 @@ function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: Ax
   }
 }
 
-function rangeMax<T>(data: Array<T>, accRange: DataKeyRangeFunc<T>) {
-  const maximum = max(data, accRange);
-
-  return sig(ceil10(maximum, digits(maximum) - 2));
-}
-
 export function BarPlot<T>(props: Props<T>) {
-  const { data, width, height, margin: userMargin, color, barStyle } = props;
+  const { data, width, height, margin: userMargin, color, barStyle, range } = props;
+  const initialRange = range || {};
   const id = useUID();
   const uid = `barplot-id-${id}`;
   useEffect(() => {
@@ -146,7 +145,10 @@ export function BarPlot<T>(props: Props<T>) {
     // Range axis
     var y = d3
       .scaleLinear()
-      .domain([0, rangeMax(data, accRange)])
+      .domain([
+        initialRange.min ? initialRange.min : rangeMin(data, accRange),
+        initialRange.max ? initialRange.max : rangeMax(data, accRange),
+      ])
       .range([chartHeight, 0]);
     svg
       .append('g')

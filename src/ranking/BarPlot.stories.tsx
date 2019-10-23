@@ -168,3 +168,21 @@ export const axesStyle = () => (
     }}
   />
 );
+
+export const axesRange = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    range={{
+      max: 15000,
+      min: 0,
+    }}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+    color="green"
+  />
+);
