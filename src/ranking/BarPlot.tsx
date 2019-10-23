@@ -2,8 +2,8 @@ import React, { useEffect, SVGAttributes } from 'react';
 import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
-import { Margin } from '../types';
-import { toKebabCase, rangeMax, rangeMin } from '../util';
+import { Margin, Easing, easing } from '../types';
+import { camelToKebab, rangeMax, rangeMin } from '../util';
 
 type AxisType = 'domain' | 'range';
 type DataKeyDomainFunc<T> = (data: T) => string;
@@ -50,6 +50,9 @@ interface BarPlotProps<T> {
     min?: number;
   };
   barStyle?: AxisStyle;
+  duration?: number;
+  easing?: Easing;
+  delay?: (d: T, i: number) => number;
   svg?: (svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) => void;
 }
 
@@ -96,17 +99,29 @@ function unpackProps<T, A extends AxisType>(props: Props<T>, axis: AxisType): Ax
 function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: AxisStyle) {
   const attributes = props.attributes || {};
   for (const attr in attributes) {
-    svg = svg.attr(toKebabCase(attr), (props.attributes as Record<string, any>)[attr]);
+    svg = svg.attr(camelToKebab(attr), (props.attributes as Record<string, any>)[attr]);
   }
 
   const style = props.style || {};
   for (const property in style) {
-    svg = svg.style(toKebabCase(property), (props.style as Record<string, any>)[property]);
+    svg = svg.style(camelToKebab(property), (props.style as Record<string, any>)[property]);
   }
 }
 
 export function BarPlot<T>(props: Props<T>) {
-  const { data, width, height, margin: userMargin, color, barStyle, range, svg: userSvg } = props;
+  const {
+    data,
+    width,
+    height,
+    margin: userMargin,
+    color,
+    barStyle,
+    range,
+    svg: userSvg,
+    duration,
+    easing: userEasing,
+    delay,
+  } = props;
   const initialRange = range || {};
   const id = useUID();
   const uid = `barplot-id-${id}`;
@@ -160,6 +175,7 @@ export function BarPlot<T>(props: Props<T>) {
     applyStyle(rangeText, rangeStyle);
 
     // Bars
+    const rangeVal = (d: T) => (duration ? y(0) : y(accRange(d)));
     svg
       .selectAll('mybar')
       .data(data)
@@ -169,16 +185,36 @@ export function BarPlot<T>(props: Props<T>) {
         return domain(accDomain(d));
       })
       .attr('y', function(d: T) {
-        return y(accRange(d));
+        return rangeVal(d);
       })
       .attr('width', domain.bandwidth())
       .attr('height', function(d: T) {
-        return chartHeight - y(accRange(d));
+        return chartHeight - rangeVal(d);
       })
       .attr('fill', color ? color : '#69b3a2');
 
     const bars = svg.selectAll('rect');
     applyStyle(bars, barStyle || {});
+
+    if (duration) {
+      svg
+        .selectAll('rect')
+        .transition()
+        .ease(easing(userEasing))
+        .duration(duration)
+        .attr('y', function(d: T) {
+          return y(accRange(d));
+        })
+        .attr('height', function(d: T) {
+          return chartHeight - y(accRange(d));
+        })
+        .delay(
+          delay ||
+            function(_: T, i) {
+              return i * 100;
+            }
+        );
+    }
 
     if (userSvg) {
       userSvg(svg);

@@ -203,3 +203,20 @@ export const userSvg = () => (
     }}
   />
 );
+
+export const animation = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    duration={800}
+    easing="elastic"
+    delay={(_, i) => i * 150}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+    color="purple"
+  />
+);
