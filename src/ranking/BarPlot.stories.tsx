@@ -44,23 +44,29 @@ const defaultMargin = {
   left: 60,
 };
 
-export const basic = () => (
+export const basicDataKey = () => (
   <BarPlot
     data={data}
-    width={460}
+    width={700}
     height={400}
     margin={defaultMargin}
-    dataKey={{ x: (entry: Country) => entry.Country, y: (entry: Country) => entry.Value }}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
   />
 );
 
 export const dataKeyString = () => (
   <BarPlot
     data={data}
-    width={460}
+    width={700}
     height={400}
     margin={defaultMargin}
-    dataKey={{ x: 'Country', y: 'Value' }}
+    dataKey={{
+      domain: 'Country',
+      range: 'Value',
+    }}
     color="red"
   />
 );
@@ -68,10 +74,97 @@ export const dataKeyString = () => (
 export const dataKeyArray = () => (
   <BarPlot
     data={dataArray}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    dataKey={{
+      domain: 0,
+      range: 1,
+    }}
+    color="blue"
+  />
+);
+
+export const basicAxes = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    axes={{
+      domain: {
+        dataKey: (entry: Country) => entry.Country,
+      },
+      range: {
+        dataKey: (entry: Country) => entry.Value,
+      },
+    }}
+  />
+);
+
+export const axesString = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    axes={{
+      domain: {
+        dataKey: 'Country',
+      },
+      range: {
+        dataKey: 'Value',
+      },
+    }}
+    color="red"
+  />
+);
+
+export const axesArray = () => (
+  <BarPlot
+    data={dataArray}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    axes={{
+      domain: {
+        dataKey: 0,
+      },
+      range: {
+        dataKey: 1,
+      },
+    }}
+    color="blue"
+  />
+);
+
+export const axesStyle = () => (
+  <BarPlot
+    data={data}
     width={460}
     height={400}
     margin={defaultMargin}
-    dataKey={{ x: 0, y: 1 }}
-    color="blue"
+    axes={{
+      domain: {
+        dataKey: (entry: Country) => entry.Country,
+        attributes: {
+          transform: 'translate(-10,0)rotate(-45)',
+        },
+        style: {
+          textAnchor: 'end',
+        },
+      },
+      range: {
+        dataKey: (entry: Country) => entry.Value,
+        style: {
+          fill: 'blue',
+        },
+      },
+    }}
+    barStyle={{
+      style: {
+        stroke: 'black',
+      },
+    }}
   />
 );

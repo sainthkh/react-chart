@@ -4,6 +4,9 @@ module.exports = ({ config }) => {
     use: [
       {
         loader: require.resolve('ts-loader'),
+        options: {
+          configFile: 'tsconfig.dev.json',
+        },
       },
       {
         loader: require.resolve('react-docgen-typescript-loader'),
