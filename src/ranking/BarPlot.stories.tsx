@@ -292,3 +292,17 @@ export const allNegativeValues = () => (
     }}
   />
 );
+
+export const order = () => (
+  <BarPlot
+    data={data}
+    order="asc"
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);

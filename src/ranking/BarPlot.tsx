@@ -39,8 +39,11 @@ export function dataKeyAccessor<T, A extends AxisType>(
   return accessor as DataKeyFunc<T, A>;
 }
 
+type Order = 'none' | 'desc' | 'asc';
+
 interface BarPlotProps<T> {
   data?: Array<T>;
+  order?: Order;
   width: number;
   height: number;
   margin?: Margin;
@@ -111,7 +114,8 @@ function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: Ax
 
 export function BarPlot<T>(props: Props<T>) {
   const {
-    data,
+    data: userData,
+    order = 'none',
     width,
     height,
     margin: userMargin,
@@ -144,6 +148,17 @@ export function BarPlot<T>(props: Props<T>) {
 
     const { accessor: accDomain, ...domainStyle } = unpackProps<T, 'domain'>(props, 'domain');
     const { accessor: accRange, ...rangeStyle } = unpackProps<T, 'range'>(props, 'range');
+
+    const data =
+      order === 'none'
+        ? userData
+        : userData.sort((a, b) => {
+            if (order === 'asc') {
+              return accRange(a) - accRange(b);
+            } else {
+              return accRange(b) - accRange(a);
+            }
+          });
 
     const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
     const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
