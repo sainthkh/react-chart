@@ -150,7 +150,7 @@ export function BarPlot<T>(props: Props<T>) {
     const data =
       order === 'none'
         ? userData
-        : userData.sort((a, b) => {
+        : [...userData].sort((a, b) => {
             if (order === 'asc') {
               return accRange(a) - accRange(b);
             } else {
