@@ -42,7 +42,7 @@ export function dataKeyAccessor<T, A extends AxisType>(
 type Order = 'none' | 'desc' | 'asc';
 
 interface BarPlotProps<T> {
-  data?: Array<T>;
+  data: Array<T>;
   order?: Order;
   width: number;
   height: number;
@@ -101,13 +101,11 @@ function unpackProps<T, A extends AxisType>(props: Props<T>, axis: AxisType): Ax
 }
 
 function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: AxisStyle) {
-  const attributes = props.attributes || {};
-  for (const attr in attributes) {
+  for (const attr in props.attributes) {
     svg = svg.attr(camelToKebab(attr), (props.attributes as Record<string, any>)[attr]);
   }
 
-  const style = props.style || {};
-  for (const property in style) {
+  for (const property in props.style) {
     svg = svg.style(camelToKebab(property), (props.style as Record<string, any>)[property]);
   }
 }
@@ -119,18 +117,18 @@ export function BarPlot<T>(props: Props<T>) {
     width,
     height,
     margin: userMargin,
-    color,
+    color = '#69b3a2',
     negativeColor,
-    barStyle,
-    range,
+    barStyle = {},
+    range: initialRange = {},
     svg: userSvg,
     duration,
     easing: userEasing,
     delay,
   } = props;
-  const initialRange = range || {};
   const id = useUID();
   const uid = `barplot-id-${id}`;
+
   useEffect(() => {
     // set the dimensions and margins of the graph
     const margin = { top: 0, right: 0, bottom: 0, left: 0, ...userMargin };
@@ -206,17 +204,15 @@ export function BarPlot<T>(props: Props<T>) {
         return duration ? 0 : Math.abs(positiveHeight - barLength(accRange(d)));
       })
       .attr('fill', function(d: T) {
-        const defaultColor = '#69b3a2';
         if (accRange(d) > 0) {
-          return color ? color : defaultColor;
+          return color;
         } else {
-          const c = negativeColor ? negativeColor : color;
-          return c ? c : defaultColor;
+          return negativeColor ? negativeColor : color;
         }
       });
 
     const bars = svg.selectAll('rect');
-    applyStyle(bars, barStyle || {});
+    applyStyle(bars, barStyle);
 
     if (duration) {
       svg
