@@ -40,10 +40,12 @@ export function dataKeyAccessor<T, A extends AxisType>(
 }
 
 type Order = 'none' | 'desc' | 'asc';
+type Direction = 'horizontal' | 'vertical';
 
 interface BarPlotProps<T> {
   data: Array<T>;
   order?: Order;
+  direction?: Direction;
   width: number;
   height: number;
   margin?: Margin;
@@ -114,6 +116,7 @@ export function BarPlot<T>(props: Props<T>) {
   const {
     data: userData,
     order = 'none',
+    direction = 'vertical',
     width,
     height,
     margin: userMargin,
@@ -134,6 +137,8 @@ export function BarPlot<T>(props: Props<T>) {
     const margin = { top: 0, right: 0, bottom: 0, left: 0, ...userMargin };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
+    const domainLength = direction === 'vertical' ? chartWidth : chartHeight;
+    const rangeLength = direction === 'vertical' ? chartHeight : chartWidth;
 
     // append the svg object to the body of the page
     const svg = d3
@@ -160,27 +165,82 @@ export function BarPlot<T>(props: Props<T>) {
 
     const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
     const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
-    const positiveHeight =
-      (rangeMax / (rangeMax + Math.abs(rangeMin < 0 ? rangeMin : 0))) * chartHeight;
-    const xAxisPos = positiveHeight > 0 ? positiveHeight : 0;
+    let maxBarLength = rangeLength;
+    if (rangeMin * rangeMax < 0) {
+      maxBarLength = (rangeMax / (rangeMax + Math.abs(rangeMin < 0 ? rangeMin : 0))) * rangeLength;
+    }
+    let domainAxisPos = 0;
+    if (direction === 'vertical') {
+      domainAxisPos = rangeMax > 0 ? maxBarLength : 0;
+    } else {
+      domainAxisPos = rangeMax > 0 ? rangeLength - maxBarLength : rangeLength;
+    }
 
     // Domain Function
     const domain = d3
       .scaleBand()
-      .range([0, chartWidth])
+      .range([0, domainLength])
       .domain(data.map(accDomain))
       .padding(0.2);
 
     // Range Functions
-    const barLength = d3
-      .scaleLinear()
-      .domain([rangeMin > 0 ? rangeMin : 0, rangeMax])
-      .range([positiveHeight, 0]);
+    let barEndPos: d3.ScaleLinear<number, number>;
+
+    if (rangeMin > 0 || rangeMax > 0) {
+      barEndPos = d3
+        .scaleLinear()
+        .domain([rangeMin > 0 ? rangeMin : 0, rangeMax])
+        .range([maxBarLength, 0]);
+    } else {
+      barEndPos = d3
+        .scaleLinear()
+        .domain([rangeMin, rangeMax])
+        .range([0, maxBarLength]);
+    }
 
     const range = d3
       .scaleLinear()
       .domain([rangeMin, rangeMax])
-      .range([chartHeight, 0]);
+      .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
+
+    const barFuncs = (direction: Direction) => {
+      const domainStart = (d: T) => domain(accDomain(d));
+      const rangePos = (d: T) => {
+        const pos = range(accRange(d));
+        return pos < domainAxisPos ? pos : domainAxisPos;
+      };
+      const rangeStart = (d: T) => (duration ? domainAxisPos : rangePos(d));
+      const domainWidth = (_: T) => domain.bandwidth();
+      const rangeLength = (d: T) => Math.abs(maxBarLength - barEndPos(accRange(d)));
+      const rangeWidth = (d: T) => (duration ? 0 : rangeLength(d));
+
+      if (direction === 'vertical') {
+        return {
+          xFunc: domainStart,
+          yFunc: rangeStart,
+          widthFunc: domainWidth,
+          heightFunc: rangeWidth,
+          animX: domainStart,
+          animY: rangePos,
+          animWidth: domainWidth,
+          animHeight: rangeLength,
+        };
+      } else {
+        return {
+          xFunc: rangeStart,
+          yFunc: domainStart,
+          widthFunc: rangeWidth,
+          heightFunc: domainWidth,
+          animX: rangePos,
+          animY: domainStart,
+          animWidth: rangeLength,
+          animHeight: domainWidth,
+        };
+      }
+    };
+    const { xFunc, yFunc, widthFunc, heightFunc, animX, animY, animWidth, animHeight } = barFuncs(
+      direction
+    );
 
     // Render Bars
     svg
@@ -188,21 +248,10 @@ export function BarPlot<T>(props: Props<T>) {
       .data(data)
       .enter()
       .append('rect')
-      .attr('x', function(d: T) {
-        return domain(accDomain(d));
-      })
-      .attr('y', function(d: T) {
-        if (duration) {
-          return xAxisPos;
-        } else {
-          const yPos = range(accRange(d));
-          return yPos < xAxisPos ? yPos : xAxisPos;
-        }
-      })
-      .attr('width', domain.bandwidth())
-      .attr('height', function(d: T) {
-        return duration ? 0 : Math.abs(positiveHeight - barLength(accRange(d)));
-      })
+      .attr('x', xFunc)
+      .attr('y', yFunc)
+      .attr('width', widthFunc)
+      .attr('height', heightFunc)
       .attr('fill', function(d: T) {
         if (accRange(d) > 0) {
           return color;
@@ -220,13 +269,10 @@ export function BarPlot<T>(props: Props<T>) {
         .transition()
         .ease(easing(userEasing))
         .duration(duration)
-        .attr('y', function(d: T) {
-          const yPos = range(accRange(d));
-          return yPos < xAxisPos ? yPos : xAxisPos;
-        })
-        .attr('height', function(d: T) {
-          return Math.abs(positiveHeight - barLength(accRange(d)));
-        })
+        .attr('x', animX)
+        .attr('y', animY)
+        .attr('width', animWidth)
+        .attr('height', animHeight)
         .delay(
           delay ||
             function(_: T, i) {
@@ -236,20 +282,29 @@ export function BarPlot<T>(props: Props<T>) {
     }
 
     // Render x Axis
-    svg
-      .append('g')
-      .attr('class', 'x-axis')
-      .attr('transform', `translate(0,${xAxisPos})`)
-      .call(rangeMax > 0 ? d3.axisBottom(domain) : d3.axisTop(domain));
+    const xAxis = svg.append('g').attr('class', 'x-axis');
+
+    if (direction === 'vertical') {
+      xAxis
+        .attr('transform', `translate(0,${domainAxisPos})`)
+        .call(rangeMax > 0 ? d3.axisBottom(domain) : d3.axisTop(domain));
+    } else {
+      xAxis.attr('transform', `translate(0, ${chartHeight})`).call(d3.axisBottom(range));
+    }
 
     const domainText = svg.selectAll('.x-axis text');
     applyStyle(domainText, domainStyle);
 
     // Render y Axis
-    svg
-      .append('g')
-      .attr('class', 'y-axis')
-      .call(d3.axisLeft(range));
+    const yAxis = svg.append('g').attr('class', 'y-axis');
+
+    if (direction === 'vertical') {
+      yAxis.call(d3.axisLeft(range));
+    } else {
+      yAxis
+        .attr('transform', `translate(${domainAxisPos}, 0)`)
+        .call(rangeMax > 0 ? d3.axisLeft(domain) : d3.axisRight(domain));
+    }
 
     const rangeText = svg.selectAll('.y-axis text');
     applyStyle(rangeText, rangeStyle);

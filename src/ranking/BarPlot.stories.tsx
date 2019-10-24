@@ -39,7 +39,7 @@ const dataArray = [
 
 const defaultMargin = {
   top: 30,
-  rigtht: 30,
+  right: 30,
   bottom: 70,
   left: 60,
 };
@@ -223,7 +223,7 @@ export const animation = () => (
   />
 );
 
-const someNegativeVales: Country[] = [
+const someNegativeValues: Country[] = [
   { Country: 'United States', Value: 12394 },
   { Country: 'Russia', Value: 6148 },
   { Country: 'Germany (FRG)', Value: -1653 },
@@ -238,7 +238,7 @@ const someNegativeVales: Country[] = [
 
 export const negativeValues = () => (
   <BarPlot
-    data={someNegativeVales}
+    data={someNegativeValues}
     width={700}
     height={400}
     margin={defaultMargin}
@@ -252,7 +252,7 @@ export const negativeValues = () => (
 
 export const negativeValueAnimation = () => (
   <BarPlot
-    data={someNegativeVales}
+    data={someNegativeValues}
     width={700}
     height={400}
     margin={defaultMargin}
@@ -300,6 +300,72 @@ export const order = () => (
     width={700}
     height={400}
     margin={defaultMargin}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+const horizontalMargin = {
+  top: 10,
+  right: 80,
+  bottom: 20,
+  left: 80,
+};
+
+export const horizontal = () => (
+  <BarPlot
+    data={data}
+    direction="horizontal"
+    width={700}
+    height={400}
+    margin={horizontalMargin}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+export const horizontalAnimation = () => (
+  <BarPlot
+    data={data}
+    direction="horizontal"
+    width={700}
+    height={400}
+    margin={horizontalMargin}
+    duration={800}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+export const horizontalNegativeValues = () => (
+  <BarPlot
+    data={someNegativeValues}
+    direction="horizontal"
+    width={700}
+    height={400}
+    margin={horizontalMargin}
+    duration={800}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+export const horizontalAllNegative = () => (
+  <BarPlot
+    data={negativeOnly}
+    direction="horizontal"
+    width={700}
+    height={400}
+    margin={horizontalMargin}
+    duration={800}
     dataKey={{
       domain: (entry: Country) => entry.Country,
       range: (entry: Country) => entry.Value,
