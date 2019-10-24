@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
 import { Margin, Easing, easing } from '../types';
-import { camelToKebab, rangeMax, rangeMin } from '../util';
+import { camelToKebab, rangeMax as rangeMaxFunc, rangeMin as rangeMinFunc } from '../util';
 
 type AxisType = 'domain' | 'range';
 type DataKeyDomainFunc<T> = (data: T) => string;
@@ -45,6 +45,7 @@ interface BarPlotProps<T> {
   height: number;
   margin?: Margin;
   color?: string;
+  negativeColor?: string;
   range?: {
     max?: number;
     min?: number;
@@ -115,6 +116,7 @@ export function BarPlot<T>(props: Props<T>) {
     height,
     margin: userMargin,
     color,
+    negativeColor,
     barStyle,
     range,
     svg: userSvg,
@@ -143,39 +145,31 @@ export function BarPlot<T>(props: Props<T>) {
     const { accessor: accDomain, ...domainStyle } = unpackProps<T, 'domain'>(props, 'domain');
     const { accessor: accRange, ...rangeStyle } = unpackProps<T, 'range'>(props, 'range');
 
-    // Domain axis
+    const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
+    const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
+    const positiveHeight =
+      (rangeMax / (rangeMax + Math.abs(rangeMin < 0 ? rangeMin : 0))) * chartHeight;
+    const xAxisPos = positiveHeight > 0 ? positiveHeight : 0;
+
+    // Domain Function
     const domain = d3
       .scaleBand()
       .range([0, chartWidth])
       .domain(data.map(accDomain))
       .padding(0.2);
-    svg
-      .append('g')
-      .attr('class', 'domain-axis')
-      .attr('transform', `translate(0,${chartHeight})`)
-      .call(d3.axisBottom(domain));
 
-    const domainText = svg.selectAll('.domain-axis text');
-    applyStyle(domainText, domainStyle);
-
-    // Range axis
-    var y = d3
+    // Range Functions
+    const barLength = d3
       .scaleLinear()
-      .domain([
-        initialRange.min ? initialRange.min : rangeMin(data, accRange),
-        initialRange.max ? initialRange.max : rangeMax(data, accRange),
-      ])
+      .domain([rangeMin > 0 ? rangeMin : 0, rangeMax])
+      .range([positiveHeight, 0]);
+
+    const range = d3
+      .scaleLinear()
+      .domain([rangeMin, rangeMax])
       .range([chartHeight, 0]);
-    svg
-      .append('g')
-      .attr('class', 'range-axis')
-      .call(d3.axisLeft(y));
 
-    const rangeText = svg.selectAll('.range-axis text');
-    applyStyle(rangeText, rangeStyle);
-
-    // Bars
-    const rangeVal = (d: T) => (duration ? y(0) : y(accRange(d)));
+    // Render Bars
     svg
       .selectAll('mybar')
       .data(data)
@@ -185,13 +179,26 @@ export function BarPlot<T>(props: Props<T>) {
         return domain(accDomain(d));
       })
       .attr('y', function(d: T) {
-        return rangeVal(d);
+        if (duration) {
+          return xAxisPos;
+        } else {
+          const yPos = range(accRange(d));
+          return yPos < xAxisPos ? yPos : xAxisPos;
+        }
       })
       .attr('width', domain.bandwidth())
       .attr('height', function(d: T) {
-        return chartHeight - rangeVal(d);
+        return duration ? 0 : Math.abs(positiveHeight - barLength(accRange(d)));
       })
-      .attr('fill', color ? color : '#69b3a2');
+      .attr('fill', function(d: T) {
+        const defaultColor = '#69b3a2';
+        if (accRange(d) > 0) {
+          return color ? color : defaultColor;
+        } else {
+          const c = negativeColor ? negativeColor : color;
+          return c ? c : defaultColor;
+        }
+      });
 
     const bars = svg.selectAll('rect');
     applyStyle(bars, barStyle || {});
@@ -203,10 +210,11 @@ export function BarPlot<T>(props: Props<T>) {
         .ease(easing(userEasing))
         .duration(duration)
         .attr('y', function(d: T) {
-          return y(accRange(d));
+          const yPos = range(accRange(d));
+          return yPos < xAxisPos ? yPos : xAxisPos;
         })
         .attr('height', function(d: T) {
-          return chartHeight - y(accRange(d));
+          return Math.abs(positiveHeight - barLength(accRange(d)));
         })
         .delay(
           delay ||
@@ -215,6 +223,25 @@ export function BarPlot<T>(props: Props<T>) {
             }
         );
     }
+
+    // Render x Axis
+    svg
+      .append('g')
+      .attr('class', 'x-axis')
+      .attr('transform', `translate(0,${xAxisPos})`)
+      .call(rangeMax > 0 ? d3.axisBottom(domain) : d3.axisTop(domain));
+
+    const domainText = svg.selectAll('.x-axis text');
+    applyStyle(domainText, domainStyle);
+
+    // Render y Axis
+    svg
+      .append('g')
+      .attr('class', 'y-axis')
+      .call(d3.axisLeft(range));
+
+    const rangeText = svg.selectAll('.y-axis text');
+    applyStyle(rangeText, rangeStyle);
 
     if (userSvg) {
       userSvg(svg);

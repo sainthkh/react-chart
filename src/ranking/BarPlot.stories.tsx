@@ -44,7 +44,7 @@ const defaultMargin = {
   left: 60,
 };
 
-export const basicDataKey = () => (
+export const basic = () => (
   <BarPlot
     data={data}
     width={700}
@@ -199,7 +199,9 @@ export const userSvg = () => (
     }}
     color="cyan"
     svg={(svg) => {
-      svg.selectAll('.domain-axis text').attr('font-weight', 'bold');
+      svg.selectAll('.x-axis text').attr('font-weight', (_, i) => {
+        return i === 2 ? 'bold' : 'normal';
+      });
     }}
   />
 );
@@ -218,5 +220,75 @@ export const animation = () => (
       range: (entry: Country) => entry.Value,
     }}
     color="purple"
+  />
+);
+
+const someNegativeVales: Country[] = [
+  { Country: 'United States', Value: 12394 },
+  { Country: 'Russia', Value: 6148 },
+  { Country: 'Germany (FRG)', Value: -1653 },
+  { Country: 'France', Value: 2162 },
+  { Country: 'United Kingdom', Value: 1214 },
+  { Country: 'China', Value: 1131 },
+  { Country: 'Spain', Value: -814 },
+  { Country: 'Netherlands', Value: 1167 },
+  { Country: 'Italy', Value: -660 },
+  { Country: 'Israel', Value: 1263 },
+];
+
+export const negativeValues = () => (
+  <BarPlot
+    data={someNegativeVales}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    negativeColor="red"
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+export const negativeValueAnimation = () => (
+  <BarPlot
+    data={someNegativeVales}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    duration={800}
+    easing="elastic"
+    delay={(_, i) => i * 150}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+    color="orange"
+  />
+);
+
+const negativeOnly: Country[] = [
+  { Country: 'United States', Value: -12394 },
+  { Country: 'Russia', Value: -6148 },
+  { Country: 'Germany (FRG)', Value: -1653 },
+  { Country: 'France', Value: -2162 },
+  { Country: 'United Kingdom', Value: -1214 },
+  { Country: 'China', Value: -1131 },
+  { Country: 'Spain', Value: -814 },
+  { Country: 'Netherlands', Value: -1167 },
+  { Country: 'Italy', Value: -660 },
+  { Country: 'Israel', Value: -1263 },
+];
+
+export const allNegativeValues = () => (
+  <BarPlot
+    data={negativeOnly}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
   />
 );
