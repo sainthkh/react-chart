@@ -3,3 +3,14 @@ export const camelToKebab = (str: string) =>
 
 export const kebabToCamel = (str: string) =>
   str.replace(/(-[a-z])/g, (g) => g.toUpperCase().replace('-', ''));
+
+const canvas = document.createElement('canvas');
+const context = canvas.getContext('2d');
+export const measureText = (text: string, fontSize: number) => {
+  context.font = `bold ${fontSize}px arial`;
+  const metrics = context.measureText(text);
+  return {
+    width: metrics.width,
+    height: parseInt(context.font, 10),
+  };
+};
