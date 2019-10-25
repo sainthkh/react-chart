@@ -133,21 +133,12 @@ export function BarPlot<T>(props: Props<T>) {
   const uid = `barplot-id-${id}`;
 
   useEffect(() => {
-    // set the dimensions and margins of the graph
+    // Phase 1. Calculate related numbers
     const margin = { top: 0, right: 0, bottom: 0, left: 0, ...userMargin };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
     const domainLength = direction === 'vertical' ? chartWidth : chartHeight;
     const rangeLength = direction === 'vertical' ? chartHeight : chartWidth;
-
-    // append the svg object to the body of the page
-    const svg = d3
-      .select(`#${uid}`)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-      .append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
     const { accessor: accDomain, ...domainStyle } = unpackProps<T, 'domain'>(props, 'domain');
     const { accessor: accRange, ...rangeStyle } = unpackProps<T, 'range'>(props, 'range');
@@ -176,6 +167,7 @@ export function BarPlot<T>(props: Props<T>) {
       domainAxisPos = rangeMax > 0 ? rangeLength - maxBarLength : rangeLength;
     }
 
+    // Phase 2. Generate functions for rendering.
     // Domain Function
     const domain = d3
       .scaleBand()
@@ -242,6 +234,16 @@ export function BarPlot<T>(props: Props<T>) {
       direction
     );
 
+    // Phase 3. Render Chart.
+    // append the svg object to the body of the page
+    const svg = d3
+      .select(`#${uid}`)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
     // Render Bars
     svg
       .selectAll('mybar')
@@ -263,6 +265,7 @@ export function BarPlot<T>(props: Props<T>) {
     const bars = svg.selectAll('rect');
     applyStyle(bars, barStyle);
 
+    // Render Animation
     if (duration) {
       svg
         .selectAll('rect')
