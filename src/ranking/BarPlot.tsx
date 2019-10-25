@@ -188,14 +188,14 @@ export function BarPlot<T>(props: Props<T>) {
     }
 
     // Phase 2. Generate functions for rendering.
-    // Domain Function
+    // Domain value -> Chart domain axis value
     const domain = d3
       .scaleBand()
       .range([0, domainLength])
       .domain(data.map(accDomain))
       .padding(0.2);
 
-    // Range Functions
+    // Range value -> Bar's end point bar on chart's range axis.
     let barEndPos: d3.ScaleLinear<number, number>;
 
     if (rangeMin > 0 || rangeMax > 0) {
@@ -210,11 +210,13 @@ export function BarPlot<T>(props: Props<T>) {
         .range([0, maxBarLength]);
     }
 
+    // Range value -> Bar's starting point on chart's range axis.
     const range = d3
       .scaleLinear()
       .domain([rangeMin, rangeMax])
       .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
 
+    // Generate functions according to direction.
     const barFuncs = (direction: Direction) => {
       const domainStart = (d: T) => domain(accDomain(d));
       const rangePos = (d: T) => {
