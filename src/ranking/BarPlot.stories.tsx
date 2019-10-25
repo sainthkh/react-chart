@@ -372,3 +372,42 @@ export const horizontalAllNegative = () => (
     }}
   />
 );
+
+export const chartwiseEvent = () => (
+  <div
+    onClick={() => {
+      alert('clicked');
+    }}
+  >
+    <BarPlot
+      data={negativeOnly}
+      direction="horizontal"
+      width={700}
+      height={400}
+      margin={horizontalMargin}
+      duration={800}
+      dataKey={{
+        domain: (entry: Country) => entry.Country,
+        range: (entry: Country) => entry.Value,
+      }}
+    />
+  </div>
+);
+
+export const barEvent = () => (
+  <BarPlot
+    data={negativeOnly}
+    direction="horizontal"
+    width={700}
+    height={400}
+    margin={horizontalMargin}
+    duration={800}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+    onBarClick={(event) => {
+      alert(event.data.Country);
+    }}
+  />
+);

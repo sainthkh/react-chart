@@ -1,4 +1,4 @@
-import React, { useEffect, SVGAttributes } from 'react';
+import React, { useEffect, SVGAttributes, MouseEvent } from 'react';
 import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
@@ -42,6 +42,16 @@ export function dataKeyAccessor<T, A extends AxisType>(
 type Order = 'none' | 'desc' | 'asc';
 type Direction = 'horizontal' | 'vertical';
 
+type ChartSVG = d3.Selection<SVGGElement, unknown, HTMLElement, any>;
+interface Event<T> {
+  data: T;
+  DOMEvent: MouseEvent;
+  index: number;
+  svg: ChartSVG;
+  d3: typeof d3;
+}
+type EventHandler<T> = (event: Event<T>) => void;
+
 interface BarPlotProps<T> {
   data: Array<T>;
   order?: Order;
@@ -59,7 +69,12 @@ interface BarPlotProps<T> {
   duration?: number;
   easing?: Easing;
   delay?: (d: T, i: number) => number;
-  svg?: (svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) => void;
+  onBarClick?: EventHandler<T>;
+  onBarContextMenu?: EventHandler<T>;
+  onBarMouseEnter?: EventHandler<T>;
+  onBarMouseMove?: EventHandler<T>;
+  onBarMouseLeave?: EventHandler<T>;
+  svg?: (svg: ChartSVG) => void;
 }
 
 type PropsWithDataKey<T> = BarPlotProps<T> & {
@@ -128,6 +143,11 @@ export function BarPlot<T>(props: Props<T>) {
     duration,
     easing: userEasing,
     delay,
+    onBarClick,
+    onBarContextMenu,
+    onBarMouseEnter,
+    onBarMouseLeave,
+    onBarMouseMove,
   } = props;
   const id = useUID();
   const uid = `barplot-id-${id}`;
@@ -264,6 +284,24 @@ export function BarPlot<T>(props: Props<T>) {
 
     const bars = svg.selectAll('rect');
     applyStyle(bars, barStyle);
+
+    // Set up events for bars.
+    const events = {
+      click: onBarClick,
+      contextmenu: onBarContextMenu,
+      mouseenter: onBarMouseEnter,
+      mousemove: onBarMouseMove,
+      mouseleave: onBarMouseLeave,
+    };
+
+    for (const event in events) {
+      bars.on(event, function(data: T, index: number) {
+        const handler = (events as Record<string, EventHandler<T>>)[event];
+        if (handler) {
+          handler({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      });
+    }
 
     // Render Animation
     if (duration) {
