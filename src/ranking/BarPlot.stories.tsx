@@ -411,3 +411,32 @@ export const barEvent = () => (
     }}
   />
 );
+
+export const tooltip = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    tooltip={true}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);
+
+export const tooltipWithAnimation = () => (
+  <BarPlot
+    data={data}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+    tooltip={true}
+    duration={800}
+    dataKey={{
+      domain: (entry: Country) => entry.Country,
+      range: (entry: Country) => entry.Value,
+    }}
+  />
+);

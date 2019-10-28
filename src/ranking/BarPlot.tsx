@@ -1,9 +1,10 @@
-import React, { useEffect, SVGAttributes, MouseEvent } from 'react';
+import React, { useEffect, SVGAttributes, MouseEvent, useReducer } from 'react';
 import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
-import { Margin, Easing, easing } from '../types';
+import { Margin, Easing, easing, Coordinate } from '../types';
 import { camelToKebab, rangeMax as rangeMaxFunc, rangeMin as rangeMinFunc } from '../util';
+import { Tooltip, Entry } from '../components/Tooltip';
 
 type AxisType = 'domain' | 'range';
 type DataKeyDomainFunc<T> = (data: T) => string;
@@ -61,6 +62,7 @@ interface BarPlotProps<T> {
   margin?: Margin;
   color?: string;
   negativeColor?: string;
+  tooltip?: boolean;
   range?: {
     max?: number;
     min?: number;
@@ -99,6 +101,54 @@ interface AxisProps<T, A extends AxisType> {
   style: SvgProperties;
 }
 
+interface State {
+  showTooltip: boolean;
+  pointer: Coordinate | null;
+  data: Entry | null;
+}
+
+// prettier-ignore
+type Action = 
+  | { type: 'SHOW_TOOLTIP'; pointer: Coordinate; data: Entry; }
+  | { type: 'HIDE_TOOLTIP'}
+
+function reducer(state: State, action: Action) {
+  switch (action.type) {
+    case 'SHOW_TOOLTIP':
+      return {
+        ...state,
+        showTooltip: true,
+        pointer: action.pointer,
+        data: action.data,
+      };
+    case 'HIDE_TOOLTIP':
+      return {
+        ...state,
+        showTooltip: false,
+        pointer: null,
+        data: null,
+      };
+    default:
+      throw Error(`${(action as any).type} doesn't exist.`);
+  }
+}
+
+export function BarPlot<T>(props: Props<T>) {
+  const { width, height } = props;
+  const [{ showTooltip, pointer, data }, dispatch] = useReducer(reducer, {
+    showTooltip: false,
+    pointer: { x: 0, y: 0 },
+    data: null,
+  });
+
+  return (
+    <>
+      <Renderer {...props} dispatch={dispatch} />
+      {showTooltip ? <Tooltip pointer={pointer} chart={{ width, height }} data={[data]} /> : null}
+    </>
+  );
+}
+
 function unpackProps<T, A extends AxisType>(props: Props<T>, axis: AxisType): AxisProps<T, A> {
   if ((props as PropsWithDataKey<T>).dataKey) {
     return {
@@ -127,7 +177,11 @@ function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: Ax
   }
 }
 
-export function BarPlot<T>(props: Props<T>) {
+type RendererProps<T> = Props<T> & {
+  dispatch: React.Dispatch<Action>;
+};
+
+function Renderer<T>(props: RendererProps<T>) {
   const {
     data: userData,
     order = 'none',
@@ -137,8 +191,9 @@ export function BarPlot<T>(props: Props<T>) {
     margin: userMargin,
     color = '#69b3a2',
     negativeColor,
-    barStyle = {},
-    range: initialRange = {},
+    tooltip,
+    barStyle,
+    range: userRange,
     svg: userSvg,
     duration,
     easing: userEasing,
@@ -148,6 +203,7 @@ export function BarPlot<T>(props: Props<T>) {
     onBarMouseEnter,
     onBarMouseLeave,
     onBarMouseMove,
+    dispatch,
   } = props;
   const id = useUID();
   const uid = `barplot-id-${id}`;
@@ -174,6 +230,7 @@ export function BarPlot<T>(props: Props<T>) {
             }
           });
 
+    const initialRange = userRange ? userRange : {};
     const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
     const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
     let maxBarLength = rangeLength;
@@ -260,6 +317,7 @@ export function BarPlot<T>(props: Props<T>) {
     // append the svg object to the body of the page
     const svg = d3
       .select(`#${uid}`)
+      .html('')
       .append('svg')
       .attr('width', width)
       .attr('height', height)
@@ -285,25 +343,56 @@ export function BarPlot<T>(props: Props<T>) {
       });
 
     const bars = svg.selectAll('rect');
-    applyStyle(bars, barStyle);
+    applyStyle(bars, barStyle || {});
 
     // Set up events for bars.
-    const events = {
-      click: onBarClick,
-      contextmenu: onBarContextMenu,
-      mouseenter: onBarMouseEnter,
-      mousemove: onBarMouseMove,
-      mouseleave: onBarMouseLeave,
+    const showTooltip = (event: MouseEvent, data: T) => {
+      const x = event.pageX;
+      const y = event.pageY;
+      dispatch({
+        type: 'SHOW_TOOLTIP',
+        pointer: {
+          x,
+          y,
+        },
+        data: { key: accDomain(data), value: accRange(data), color },
+      });
     };
 
-    for (const event in events) {
-      bars.on(event, function(data: T, index: number) {
-        const handler = (events as Record<string, EventHandler<T>>)[event];
-        if (handler) {
-          handler({ data, DOMEvent: d3.event, index, svg, d3 });
-        }
-      });
-    }
+    bars.on('click', function(data: T, index: number) {
+      if (onBarClick) {
+        onBarClick({ data, DOMEvent: d3.event, index, svg, d3 });
+      }
+    });
+    bars.on('contextmenu', function(data: T, index: number) {
+      if (onBarContextMenu) {
+        onBarContextMenu({ data, DOMEvent: d3.event, index, svg, d3 });
+      }
+    });
+    bars.on('mouseenter', function(data: T, index: number) {
+      if (tooltip) {
+        showTooltip(d3.event as MouseEvent, data);
+      }
+
+      if (onBarMouseEnter) {
+        onBarMouseEnter({ data, DOMEvent: d3.event, index, svg, d3 });
+      }
+    });
+    bars.on('mousemove', function(data: T, index: number) {
+      if (tooltip) {
+        showTooltip(d3.event as MouseEvent, data);
+      }
+
+      if (onBarMouseMove) {
+        onBarMouseMove({ data, DOMEvent: d3.event, index, svg, d3 });
+      }
+    });
+    bars.on('mouseleave', function(data: T, index: number) {
+      dispatch({ type: 'HIDE_TOOLTIP' });
+      if (onBarMouseLeave) {
+        onBarMouseLeave({ data, DOMEvent: d3.event, index, svg, d3 });
+      }
+    });
 
     // Render Animation
     if (duration) {
@@ -355,7 +444,28 @@ export function BarPlot<T>(props: Props<T>) {
     if (userSvg) {
       userSvg(svg);
     }
-  });
+  }, [
+    userData,
+    order,
+    direction,
+    width,
+    height,
+    userMargin,
+    color,
+    negativeColor,
+    tooltip,
+    barStyle,
+    userRange,
+    userSvg,
+    duration,
+    userEasing,
+    delay,
+    onBarClick,
+    onBarContextMenu,
+    onBarMouseEnter,
+    onBarMouseLeave,
+    onBarMouseMove,
+  ]);
 
   return <div id={uid}></div>;
 }
