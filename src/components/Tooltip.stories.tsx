@@ -19,3 +19,7 @@ export const longerValue = () => (
     chart={{ width: 400, height: 200 }}
   />
 );
+
+export const position = () => (
+  <Tooltip data={data} pointer={{ x: 100, y: 100 }} chart={{ width: 400, height: 200 }} />
+);

@@ -53,3 +53,8 @@ export type Easing =
 export function easing(easing: Easing) {
   return (d3 as Record<string, any>)[kebabToCamel(`ease-${easing ? easing : 'linear'}`)];
 }
+
+export interface Coordinate {
+  x: number;
+  y: number;
+}
