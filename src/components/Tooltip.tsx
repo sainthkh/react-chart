@@ -26,7 +26,10 @@ const PADDING_HORZ = 6;
 export function Tooltip({ data, style }: Props) {
   if (data.length === 1) {
     const { key, value, color } = data[0];
-    const { width } = measureText(key, FONT_SIZE * 1.2);
+    const { width: keyWidth } = measureText(key, FONT_SIZE * 1.2);
+    const { width: valueWidth } = measureText(`${value}`, FONT_SIZE * 1);
+    const width = keyWidth > valueWidth ? keyWidth : valueWidth;
+
     return (
       <div style={{ ...wrapper, width: width + PADDING_HORZ * 2, ...style }}>
         <div style={keyStyle}>{key}</div>
