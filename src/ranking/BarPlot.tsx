@@ -80,7 +80,7 @@ interface BarPlotProps<T> {
 }
 
 type PropsWithDataKey<T> = BarPlotProps<T> & {
-  dataKey: {
+  dataKey?: {
     domain: DataKeyDomain<T>;
     range: DataKeyRange<T>;
   };
@@ -150,19 +150,27 @@ export function BarPlot<T>(props: Props<T>) {
 }
 
 function unpackProps<T, A extends AxisType>(props: Props<T>, axis: AxisType): AxisProps<T, A> {
-  if ((props as PropsWithDataKey<T>).dataKey) {
-    return {
-      accessor: dataKeyAccessor<T, A>((props as PropsWithDataKey<T>).dataKey[axis]),
-      attributes: {},
-      style: {},
-    };
-  } else {
+  if ((props as PropsWithAxes<T>).axes) {
     const p = props as PropsWithAxes<T>;
     const { dataKey, attributes, style } = p.axes[axis];
     return {
       accessor: dataKeyAccessor<T, A>(dataKey),
       attributes,
       style,
+    };
+  } else {
+    const p = props as PropsWithDataKey<T>;
+    const dataKey = p.dataKey
+      ? p.dataKey
+      : {
+          domain: 'key',
+          range: 'value',
+        };
+
+    return {
+      accessor: dataKeyAccessor<T, A>(dataKey[axis]),
+      attributes: {},
+      style: {},
     };
   }
 }

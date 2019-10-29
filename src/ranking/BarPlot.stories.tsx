@@ -46,6 +46,21 @@ const defaultMargin = {
 
 export const basic = () => (
   <BarPlot
+    data={[
+      { key: 'United States', value: 12394 },
+      { key: 'Russia', value: 6148 },
+      { key: 'Germany (FRG)', value: 1653 },
+      { key: 'France', value: 2162 },
+      { key: 'United Kingdom', value: 1214 },
+    ]}
+    width={700}
+    height={400}
+    margin={defaultMargin}
+  />
+);
+
+export const dataKeyFunction = () => (
+  <BarPlot
     data={data}
     width={700}
     height={400}
