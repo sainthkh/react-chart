@@ -534,6 +534,7 @@ function Renderer<T>(props: RendererProps<T>) {
     onBarMouseEnter,
     onBarMouseLeave,
     onBarMouseMove,
+    uid,
   ]);
 
   return <div id={uid}></div>;
