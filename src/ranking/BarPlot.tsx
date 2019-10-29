@@ -64,6 +64,7 @@ interface BarPlotProps<T> {
   margin?: Margin;
   color?: BarColor<T>;
   negativeColor?: BarColor<T>;
+  highlightColor?: BarColor<T>;
   tooltip?: boolean;
   barStyle?: AxisStyle;
   duration?: number;
@@ -103,12 +104,15 @@ interface State {
   showTooltip: boolean;
   pointer: Coordinate | null;
   data: Entry | null;
+  highlightedIndex: number | null;
 }
 
 // prettier-ignore
 type Action = 
   | { type: 'SHOW_TOOLTIP'; pointer: Coordinate; data: Entry; }
   | { type: 'HIDE_TOOLTIP'}
+  | { type: 'TURN_ON_HIGHLIGHT'; index: number; }
+  | { type: 'TURN_OFF_HIGHLIGHT'}
 
 function reducer(state: State, action: Action) {
   switch (action.type) {
@@ -126,6 +130,16 @@ function reducer(state: State, action: Action) {
         pointer: null,
         data: null,
       };
+    case 'TURN_ON_HIGHLIGHT':
+      return {
+        ...state,
+        highlightedIndex: action.index,
+      };
+    case 'TURN_OFF_HIGHLIGHT':
+      return {
+        ...state,
+        highlightedIndex: null,
+      };
     default:
       throw Error(`${(action as any).type} doesn't exist.`);
   }
@@ -133,15 +147,16 @@ function reducer(state: State, action: Action) {
 
 export function BarPlot<T>(props: Props<T>) {
   const { width, height } = props;
-  const [{ showTooltip, pointer, data }, dispatch] = useReducer(reducer, {
+  const [{ showTooltip, pointer, data, highlightedIndex }, dispatch] = useReducer(reducer, {
     showTooltip: false,
-    pointer: { x: 0, y: 0 },
+    pointer: null,
     data: null,
+    highlightedIndex: null,
   });
 
   return (
     <>
-      <Renderer {...props} dispatch={dispatch} />
+      <Renderer {...props} dispatch={dispatch} highlightedIndex={highlightedIndex} />
       {showTooltip ? <Tooltip pointer={pointer} chart={{ width, height }} data={[data]} /> : null}
     </>
   );
@@ -185,6 +200,7 @@ function applyStyle(svg: d3.Selection<d3.BaseType, unknown, any, any>, props: Ax
 
 type RendererProps<T> = Props<T> & {
   dispatch: React.Dispatch<Action>;
+  highlightedIndex: number;
 };
 
 function Renderer<T>(props: RendererProps<T>) {
@@ -197,6 +213,8 @@ function Renderer<T>(props: RendererProps<T>) {
     margin: userMargin,
     color = '#69b3a2',
     negativeColor,
+    highlightColor,
+    highlightedIndex,
     tooltip,
     barStyle,
     svg: userSvg,
@@ -353,6 +371,7 @@ function Renderer<T>(props: RendererProps<T>) {
 
     const getColor = colorFunc(color, svg);
     const getNegativeColor = colorFunc(negativeColor, svg);
+    const getHighlightColor = colorFunc(highlightColor, svg);
     // Render Bars
     svg
       .selectAll('mybar')
@@ -364,10 +383,14 @@ function Renderer<T>(props: RendererProps<T>) {
       .attr('width', widthFunc)
       .attr('height', heightFunc)
       .attr('fill', function(d: T, index: number) {
-        if (accRange(d) > 0) {
-          return getColor(d, index);
+        if (index !== highlightedIndex) {
+          if (accRange(d) > 0) {
+            return getColor(d, index);
+          } else {
+            return negativeColor ? getNegativeColor(d, index) : getColor(d, index);
+          }
         } else {
-          return negativeColor ? getNegativeColor(d, index) : getColor(d, index);
+          return getHighlightColor(d, index);
         }
       });
 
@@ -403,6 +426,10 @@ function Renderer<T>(props: RendererProps<T>) {
         showTooltip(d3.event as MouseEvent, data, index);
       }
 
+      if (highlightColor) {
+        dispatch({ type: 'TURN_ON_HIGHLIGHT', index });
+      }
+
       if (onBarMouseEnter) {
         onBarMouseEnter({ data, DOMEvent: d3.event, index, svg, d3 });
       }
@@ -417,7 +444,14 @@ function Renderer<T>(props: RendererProps<T>) {
       }
     });
     bars.on('mouseleave', function(data: T, index: number) {
-      dispatch({ type: 'HIDE_TOOLTIP' });
+      if (tooltip) {
+        dispatch({ type: 'HIDE_TOOLTIP' });
+      }
+
+      if (highlightColor) {
+        dispatch({ type: 'TURN_OFF_HIGHLIGHT' });
+      }
+
       if (onBarMouseLeave) {
         onBarMouseLeave({ data, DOMEvent: d3.event, index, svg, d3 });
       }
@@ -487,6 +521,8 @@ function Renderer<T>(props: RendererProps<T>) {
     userMargin,
     color,
     negativeColor,
+    highlightColor,
+    highlightedIndex,
     tooltip,
     barStyle,
     userSvg,
