@@ -58,3 +58,16 @@ export interface Coordinate {
   x: number;
   y: number;
 }
+
+export interface CustomEventAttributes<T, SVG> {
+  data: T;
+  index: number;
+  svg: SVG;
+  d3: typeof d3;
+}
+
+export type Color<T, SVG> = string | ((attr: CustomEventAttributes<T, SVG>) => string);
+export function colorFunc<T, SVG>(color: Color<T, SVG>, svg: SVG) {
+  return (data: T, index: number) =>
+    typeof color === 'function' ? color({ data, index, d3, svg }) : color;
+}

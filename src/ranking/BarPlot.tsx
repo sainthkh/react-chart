@@ -2,7 +2,7 @@ import React, { useEffect, SVGAttributes, MouseEvent, useReducer } from 'react';
 import * as d3 from 'd3';
 import { useUID } from 'react-uid';
 import { SvgProperties } from 'csstype';
-import { Margin, Easing, easing, Coordinate } from '../types';
+import { Margin, Easing, easing, Coordinate, Color, colorFunc } from '../types';
 import { camelToKebab, rangeMax as rangeMaxFunc, rangeMin as rangeMinFunc } from '../util';
 import { Tooltip, Entry } from '../components/Tooltip';
 
@@ -53,6 +53,8 @@ interface Event<T> {
 }
 type EventHandler<T> = (event: Event<T>) => void;
 
+type BarColor<T> = Color<T, ChartSVG>;
+
 interface BarPlotProps<T> {
   data: Array<T>;
   order?: Order;
@@ -60,8 +62,8 @@ interface BarPlotProps<T> {
   width: number;
   height: number;
   margin?: Margin;
-  color?: string;
-  negativeColor?: string;
+  color?: BarColor<T>;
+  negativeColor?: BarColor<T>;
   tooltip?: boolean;
   barStyle?: AxisStyle;
   duration?: number;
@@ -349,6 +351,8 @@ function Renderer<T>(props: RendererProps<T>) {
       .append('g')
       .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
+    const getColor = colorFunc(color, svg);
+    const getNegativeColor = colorFunc(negativeColor, svg);
     // Render Bars
     svg
       .selectAll('mybar')
@@ -359,11 +363,11 @@ function Renderer<T>(props: RendererProps<T>) {
       .attr('y', yFunc)
       .attr('width', widthFunc)
       .attr('height', heightFunc)
-      .attr('fill', function(d: T) {
+      .attr('fill', function(d: T, index: number) {
         if (accRange(d) > 0) {
-          return color;
+          return getColor(d, index);
         } else {
-          return negativeColor ? negativeColor : color;
+          return negativeColor ? getNegativeColor(d, index) : getColor(d, index);
         }
       });
 
@@ -371,7 +375,7 @@ function Renderer<T>(props: RendererProps<T>) {
     applyStyle(bars, barStyle || {});
 
     // Set up events for bars.
-    const showTooltip = (event: MouseEvent, data: T) => {
+    const showTooltip = (event: MouseEvent, data: T, index: number) => {
       const x = event.pageX;
       const y = event.pageY;
       dispatch({
@@ -380,7 +384,7 @@ function Renderer<T>(props: RendererProps<T>) {
           x,
           y,
         },
-        data: { key: accDomain(data), value: accRange(data), color },
+        data: { key: accDomain(data), value: accRange(data), color: getColor(data, index) },
       });
     };
 
@@ -396,7 +400,7 @@ function Renderer<T>(props: RendererProps<T>) {
     });
     bars.on('mouseenter', function(data: T, index: number) {
       if (tooltip) {
-        showTooltip(d3.event as MouseEvent, data);
+        showTooltip(d3.event as MouseEvent, data, index);
       }
 
       if (onBarMouseEnter) {
@@ -405,7 +409,7 @@ function Renderer<T>(props: RendererProps<T>) {
     });
     bars.on('mousemove', function(data: T, index: number) {
       if (tooltip) {
-        showTooltip(d3.event as MouseEvent, data);
+        showTooltip(d3.event as MouseEvent, data, index);
       }
 
       if (onBarMouseMove) {
