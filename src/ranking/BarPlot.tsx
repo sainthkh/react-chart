@@ -439,28 +439,33 @@ function Renderer<T>(props: RendererProps<T>) {
     }
 
     // Render x Axis
-    const xAxis = svg.append('g').attr('class', 'x-axis');
+    const xAxis = svg.append('g');
 
     if (direction === 'vertical') {
       xAxis
         .attr('transform', `translate(0,${domainAxisPos})`)
-        .call(rangeMax > 0 ? d3.axisBottom(domain) : d3.axisTop(domain));
+        .call(rangeMax > 0 ? d3.axisBottom(domain) : d3.axisTop(domain))
+        .attr('class', 'x-axis domain-axis');
     } else {
-      xAxis.attr('transform', `translate(0, ${chartHeight})`).call(d3.axisBottom(range));
+      xAxis
+        .attr('transform', `translate(0, ${chartHeight})`)
+        .call(d3.axisBottom(range))
+        .attr('class', 'x-axis rangs-axis');
     }
 
     const domainText = svg.selectAll('.x-axis text');
     applyStyle(domainText, domainStyle);
 
     // Render y Axis
-    const yAxis = svg.append('g').attr('class', 'y-axis');
+    const yAxis = svg.append('g');
 
     if (direction === 'vertical') {
-      yAxis.call(d3.axisLeft(range));
+      yAxis.call(d3.axisLeft(range)).attr('class', 'y-axis range-axis');
     } else {
       yAxis
         .attr('transform', `translate(${domainAxisPos}, 0)`)
-        .call(rangeMax > 0 ? d3.axisLeft(domain) : d3.axisRight(domain));
+        .call(rangeMax > 0 ? d3.axisLeft(domain) : d3.axisRight(domain))
+        .attr('class', 'y-axis domain-axis');
     }
 
     const rangeText = svg.selectAll('.y-axis text');
