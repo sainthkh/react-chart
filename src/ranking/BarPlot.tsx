@@ -411,51 +411,54 @@ function Renderer<T>(props: RendererProps<T>) {
       });
     };
 
-    bars.on('click', function(data: T, index: number) {
-      if (onBarClick) {
-        onBarClick({ data, DOMEvent: d3.event, index, svg, d3 });
-      }
-    });
-    bars.on('contextmenu', function(data: T, index: number) {
-      if (onBarContextMenu) {
-        onBarContextMenu({ data, DOMEvent: d3.event, index, svg, d3 });
-      }
-    });
-    bars.on('mouseenter', function(data: T, index: number) {
-      if (tooltip) {
-        showTooltip(d3.event as MouseEvent, data, index);
-      }
+    bars
+      .on('click', function(data: T, index: number) {
+        if (onBarClick) {
+          onBarClick({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      })
+      .on('contextmenu', function(data: T, index: number) {
+        if (onBarContextMenu) {
+          onBarContextMenu({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      });
 
-      if (highlightColor) {
-        dispatch({ type: 'TURN_ON_HIGHLIGHT', index });
-      }
+    bars
+      .on('mouseenter', function(data: T, index: number) {
+        if (tooltip) {
+          showTooltip(d3.event as MouseEvent, data, index);
+        }
 
-      if (onBarMouseEnter) {
-        onBarMouseEnter({ data, DOMEvent: d3.event, index, svg, d3 });
-      }
-    });
-    bars.on('mousemove', function(data: T, index: number) {
-      if (tooltip) {
-        showTooltip(d3.event as MouseEvent, data, index);
-      }
+        if (highlightColor) {
+          dispatch({ type: 'TURN_ON_HIGHLIGHT', index });
+        }
 
-      if (onBarMouseMove) {
-        onBarMouseMove({ data, DOMEvent: d3.event, index, svg, d3 });
-      }
-    });
-    bars.on('mouseleave', function(data: T, index: number) {
-      if (tooltip) {
-        dispatch({ type: 'HIDE_TOOLTIP' });
-      }
+        if (onBarMouseEnter) {
+          onBarMouseEnter({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      })
+      .on('mousemove', function(data: T, index: number) {
+        if (tooltip) {
+          showTooltip(d3.event as MouseEvent, data, index);
+        }
 
-      if (highlightColor) {
-        dispatch({ type: 'TURN_OFF_HIGHLIGHT' });
-      }
+        if (onBarMouseMove) {
+          onBarMouseMove({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      })
+      .on('mouseleave', function(data: T, index: number) {
+        if (tooltip) {
+          dispatch({ type: 'HIDE_TOOLTIP' });
+        }
 
-      if (onBarMouseLeave) {
-        onBarMouseLeave({ data, DOMEvent: d3.event, index, svg, d3 });
-      }
-    });
+        if (highlightColor) {
+          dispatch({ type: 'TURN_OFF_HIGHLIGHT' });
+        }
+
+        if (onBarMouseLeave) {
+          onBarMouseLeave({ data, DOMEvent: d3.event, index, svg, d3 });
+        }
+      });
 
     // Render Animation
     if (duration) {
