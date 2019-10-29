@@ -63,10 +63,6 @@ interface BarPlotProps<T> {
   color?: string;
   negativeColor?: string;
   tooltip?: boolean;
-  range?: {
-    max?: number;
-    min?: number;
-  };
   barStyle?: AxisStyle;
   duration?: number;
   easing?: Easing;
@@ -201,7 +197,6 @@ function Renderer<T>(props: RendererProps<T>) {
     negativeColor,
     tooltip,
     barStyle,
-    range: userRange,
     svg: userSvg,
     duration,
     easing: userEasing,
@@ -238,9 +233,8 @@ function Renderer<T>(props: RendererProps<T>) {
             }
           });
 
-    const initialRange = userRange ? userRange : {};
-    const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
-    const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
+    const rangeMin = rangeMinFunc(data, accRange);
+    const rangeMax = rangeMaxFunc(data, accRange);
 
     let maxBarLength = rangeLength;
     let domainAxisPos = 0;
@@ -278,7 +272,7 @@ function Renderer<T>(props: RendererProps<T>) {
     if (rangeMin >= 0 && rangeMax >= 0) {
       barEndPos = d3
         .scaleLinear()
-        .domain([initialRange.min ? initialRange.min : 0, rangeMax])
+        .domain([0, rangeMax])
         .range([maxBarLength, 0]);
       range = d3
         .scaleLinear()
@@ -486,7 +480,6 @@ function Renderer<T>(props: RendererProps<T>) {
     negativeColor,
     tooltip,
     barStyle,
-    userRange,
     userSvg,
     duration,
     userEasing,
