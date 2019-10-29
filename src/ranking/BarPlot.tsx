@@ -241,15 +241,25 @@ function Renderer<T>(props: RendererProps<T>) {
     const initialRange = userRange ? userRange : {};
     const rangeMin = initialRange.min ? initialRange.min : rangeMinFunc(data, accRange);
     const rangeMax = initialRange.max ? initialRange.max : rangeMaxFunc(data, accRange);
+
     let maxBarLength = rangeLength;
-    if (rangeMin * rangeMax < 0) {
-      maxBarLength = (rangeMax / (rangeMax + Math.abs(rangeMin < 0 ? rangeMin : 0))) * rangeLength;
-    }
     let domainAxisPos = 0;
-    if (direction === 'vertical') {
-      domainAxisPos = rangeMax > 0 ? maxBarLength : 0;
+    if (rangeMin < 0 && rangeMax > 0) {
+      maxBarLength = (rangeMax / (rangeMax + Math.abs(rangeMin < 0 ? rangeMin : 0))) * rangeLength;
+
+      if (direction === 'vertical') {
+        domainAxisPos = rangeMax > 0 ? maxBarLength : 0;
+      } else {
+        domainAxisPos = rangeMax > 0 ? rangeLength - maxBarLength : rangeLength;
+      }
     } else {
-      domainAxisPos = rangeMax > 0 ? rangeLength - maxBarLength : rangeLength;
+      maxBarLength = rangeLength;
+
+      if (direction === 'vertical') {
+        domainAxisPos = rangeMax > 0 ? rangeLength : 0;
+      } else {
+        domainAxisPos = rangeMax > 0 ? 0 : rangeLength;
+      }
     }
 
     // Phase 2. Generate functions for rendering.
@@ -262,24 +272,37 @@ function Renderer<T>(props: RendererProps<T>) {
 
     // Range value -> Bar's end point bar on chart's range axis.
     let barEndPos: d3.ScaleLinear<number, number>;
+    // Range value -> Bar's starting point on chart's range axis.
+    let range: d3.ScaleLinear<number, number>;
 
-    if (rangeMin > 0 || rangeMax > 0) {
+    if (rangeMin >= 0 && rangeMax >= 0) {
       barEndPos = d3
         .scaleLinear()
-        .domain([rangeMin > 0 ? rangeMin : 0, rangeMax])
+        .domain([initialRange.min ? initialRange.min : 0, rangeMax])
         .range([maxBarLength, 0]);
+      range = d3
+        .scaleLinear()
+        .domain([0, rangeMax])
+        .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
+    } else if (rangeMin < 0 && rangeMax >= 0) {
+      barEndPos = d3
+        .scaleLinear()
+        .domain([0, rangeMax])
+        .range([maxBarLength, 0]);
+      range = d3
+        .scaleLinear()
+        .domain([rangeMin, rangeMax])
+        .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
     } else {
       barEndPos = d3
         .scaleLinear()
-        .domain([rangeMin, rangeMax])
+        .domain([rangeMin, 0])
         .range([0, maxBarLength]);
+      range = d3
+        .scaleLinear()
+        .domain([rangeMin, 0])
+        .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
     }
-
-    // Range value -> Bar's starting point on chart's range axis.
-    const range = d3
-      .scaleLinear()
-      .domain([rangeMin, rangeMax])
-      .range(direction === 'vertical' ? [rangeLength, 0] : [0, rangeLength]);
 
     // Generate functions according to direction.
     const barFuncs = (direction: Direction) => {
